@@ -70,7 +70,7 @@ impl ToolExecutor {
         // Build command
         let mut cmd = Command::new(program);
         cmd.args(args)
-            .cwd(&self.config.working_dir)
+            .current_dir(&self.config.working_dir)
             .envs(&self.config.env_vars)
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
@@ -79,29 +79,15 @@ impl ToolExecutor {
             cmd.stdin(Stdio::piped());
         }
 
-        // Spawn with timeout
-        let child_result = tokio::time::timeout(
-            self.config.time_limit.unwrap_or(Duration::MAX),
-            cmd.spawn(),
-        )
-        .await;
-
-        let child = match child_result {
-            Ok(Ok(c)) => c,
-            Ok(Err(e)) => {
+        // Spawn process
+        let child = match cmd.spawn() {
+            Ok(c) => c,
+            Err(e) => {
                 return ExecutionResult {
                     success: false,
                     output: ToolOutput::default(),
                     error: Some(ToolError::Spawn(e.to_string())),
                     duration_ms: start.elapsed().as_millis() as u64,
-                };
-            }
-            Err(_) => {
-                return ExecutionResult {
-                    success: false,
-                    output: ToolOutput::default(),
-                    error: Some(ToolError::Timeout),
-                    duration_ms: self.config.time_limit.unwrap().as_millis() as u64,
                 };
             }
         };
@@ -115,16 +101,25 @@ impl ToolExecutor {
             }
         }
 
-        // Wait for completion
-        let output_result = handle.wait_with_output().await;
+        // Wait for completion with timeout
+        let timeout_dur = self.config.time_limit.unwrap_or(Duration::from_secs(300));
+        let output_result = tokio::time::timeout(timeout_dur, handle.wait_with_output()).await;
 
         let output = match output_result {
-            Ok(o) => o,
-            Err(e) => {
+            Ok(Ok(o)) => o,
+            Ok(Err(e)) => {
                 return ExecutionResult {
                     success: false,
                     output: ToolOutput::default(),
                     error: Some(ToolError::Execution(e.to_string())),
+                    duration_ms: start.elapsed().as_millis() as u64,
+                };
+            }
+            Err(_) => {
+                return ExecutionResult {
+                    success: false,
+                    output: ToolOutput::default(),
+                    error: Some(ToolError::Timeout),
                     duration_ms: start.elapsed().as_millis() as u64,
                 };
             }
@@ -156,7 +151,7 @@ impl ToolExecutor {
 
         let mut cmd = Command::new(program);
         cmd.args(args)
-            .cwd(&self.config.working_dir)
+            .current_dir(&self.config.working_dir)
             .envs(&self.config.env_vars)
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());

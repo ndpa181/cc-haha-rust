@@ -161,7 +161,7 @@ impl Vcr {
         // Dehydrate the response (replace platform-specific values)
         let dehydrated_response = VcrResponse {
             status: response.status,
-            headers: response.headers,
+            headers: response.headers.clone(),
             body: dehydrate_value(&response.body, &self.config.placeholders),
         };
 

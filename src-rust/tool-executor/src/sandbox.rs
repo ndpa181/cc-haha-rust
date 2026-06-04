@@ -103,7 +103,7 @@ impl Default for SandboxConfig {
             network: NetworkConfig::default(),
             max_processes: Some(100),
             max_memory_bytes: Some(512 * 1024 * 1024),
-            seccomp: cfg!(all linux, not(test)),
+            seccomp: cfg!(all(target_os = "linux", not(test))),
         }
     }
 }

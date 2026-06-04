@@ -94,7 +94,7 @@ pub struct SandboxConfig {
 impl Default for SandboxConfig {
     fn default() -> Self {
         Self {
-            seccomp_enabled: cfg!(all/linux, not(test)),
+            seccomp_enabled: cfg!(all(target_os = "linux", not(test))),
             seccomp: SeccompConfig::default(),
             resources: ResourceLimits::default(),
             filesystem: FsLimits::default(),

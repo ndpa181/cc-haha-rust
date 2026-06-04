@@ -149,9 +149,9 @@ impl VerificationReport {
     }
 
     pub fn format_markdown(&self) -> String {
-        let mut lines = Vec::new();
+        let mut lines: Vec<String> = Vec::new();
 
-        lines.push("# Verification Report\n");
+        lines.push("# Verification Report\n".to_string());
 
         for check in &self.checks {
             lines.push(format!("### Check: {}\n", check.name));
@@ -163,7 +163,7 @@ impl VerificationReport {
             }
 
             if !check.output.is_empty() {
-                lines.push("\n**Output observed:**\n```\n{}\n```\n".format(check.output));
+                lines.push(format!("\n**Output observed:**\n```\n{}\n```\n", check.output));
             }
 
             if let Some(expected) = &check.expected {

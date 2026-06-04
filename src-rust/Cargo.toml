@@ -4,6 +4,7 @@ members = [
     "sandbox",
     "vcr",
     "verification",
+    "cli",
 ]
 
 resolver = "2"
