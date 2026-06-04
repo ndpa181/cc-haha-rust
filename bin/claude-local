@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# Launch claude-haha using .claude/settings.local.json env vars
+# settings.local.json 中的 env 會覆蓋 .env 中的同名變數
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SETTINGS_FILE="$ROOT_DIR/.claude/settings.local.json"
+ENV_FILE="$ROOT_DIR/.env"
+
+if [[ ! -f "$SETTINGS_FILE" ]]; then
+  echo "Error: $SETTINGS_FILE not found" >&2
+  exit 1
+fi
+
+# Merge .env + settings.local.json env into a temp file
+# .env 優先讀，settings.local.json 的 env 覆蓋同名變數
+MERGED_ENV="$(mktemp)"
+trap 'rm -f "$MERGED_ENV"' EXIT
+
+if [[ -f "$ENV_FILE" ]]; then
+  cp "$ENV_FILE" "$MERGED_ENV"
+fi
+
+# Append settings.local.json 的 env（同名 key 會覆蓋 .env 的值，因為 bun --env-file 按序讀取）
+# 但 bun 實際是先讀檔再設 env，後面覆蓋前面，所以要確保 settings 的 key 在檔案最後
+jq -r '.env // {} | to_entries[] | "\(.key)=\(.value)"' "$SETTINGS_FILE" >> "$MERGED_ENV"
+
+export CALLER_DIR="$(pwd -W 2>/dev/null || pwd)"
+
+cd "$ROOT_DIR"
+
+if [[ "${CLAUDE_CODE_FORCE_RECOVERY_CLI:-0}" == "1" ]]; then
+  exec bun --env-file="$MERGED_ENV" ./src/localRecoveryCli.ts "$@"
+fi
+
+exec bun --env-file="$MERGED_ENV" ./src/entrypoints/cli.tsx "$@"

@@ -3,6 +3,9 @@
 !.env.example
 node_modules
 
+# Rust build artifacts
+src-rust/target/
+
 # Computer Use runtime (auto-generated)
 .runtime/
 extracted-natives/
