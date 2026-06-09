@@ -19,7 +19,25 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ -z "$CLAUDE_BIN" ]]; then
-  CLAUDE_BIN="$(command -v claude 2>/dev/null || echo "/opt/homebrew/bin/claude")"
+  # Search common locations in order
+  for p in "$HOME/.local/bin/claude" \
+           "/opt/homebrew/bin/claude" \
+           "/usr/local/bin/claude" \
+           "/usr/bin/claude"; do
+    if [[ -x "$p" ]]; then
+      CLAUDE_BIN="$p"
+      break
+    fi
+  done
+  # Fallback to PATH lookup
+  if [[ -z "$CLAUDE_BIN" ]]; then
+    CLAUDE_BIN="$(command -v claude 2>/dev/null || true)"
+  fi
+fi
+
+if [[ -z "$CLAUDE_BIN" ]]; then
+  echo "Error: claude binary not found. Install claude first, or use --binary PATH" >&2
+  exit 1
 fi
 
 # --- Create ~/bin ---
